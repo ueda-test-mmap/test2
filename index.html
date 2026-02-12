@@ -1,3 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Polygon Generator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<style>
+  body {
+  background: #111;
+  color: #eee;
+  font-family: system-ui, sans-serif;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.container {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+}
+
+svg {
+  width: 300px;
+  height: 300px;
+  background: #000;
+  border-radius: 12px;
+}
+
+#mainPoly {
+  fill: #ff5555;
+}
+
+#overlayPoly {
+  fill: rgba(255,255,255,0.25);
+  pointer-events: none;
+}
+
+circle {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 2;
+  cursor: grab;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+</style>
+<body>
+
+<header>
+  <h1 data-i18n="title">Polygon Generator</h1>
+  <button id="langToggle">日本語</button>
+</header>
+
+<div class="container">
+  <svg id="svg" viewBox="0 0 200 200">
+    <polygon id="mainPoly" />
+    <polygon id="overlayPoly" />
+    <g id="handles"></g>
+  </svg>
+
+  <div class="panel">
+    <label>
+      <input type="checkbox" id="overlayToggle" checked>
+      <span data-i18n="overlay">Overlay</span>
+    </label>
+
+    <input type="color" id="colorPicker">
+    <input type="text" id="hexInput" placeholder="#ff0000">
+
+    <button id="copyPoints" data-i18n="copy">Copy Points</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+<script>
+  const svg = document.getElementById("svg");
+const mainPoly = document.getElementById("mainPoly");
+const overlayPoly = document.getElementById("overlayPoly");
+const handlesGroup = document.getElementById("handles");
+
+let points = [
+  { x: 40, y: 140 },
+  { x: 100, y: 40 },
+  { x: 160, y: 140 }
+];
+
+let activeIndex = null;
+
+// ===== polygon update =====
+function updatePolygon() {
+  const p = points.map(p => `${p.x},${p.y}`).join(" ");
+  mainPoly.setAttribute("points", p);
+  overlayPoly.setAttribute("points", p);
+}
+updatePolygon();
+
+// ===== handles =====
+function drawHandles() {
+  handlesGroup.innerHTML = "";
+  points.forEach((pt, i) => {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("cx", pt.x);
+    c.setAttribute("cy", pt.y);
+    c.setAttribute("r", 6);
+    c.addEventListener("mousedown", () => activeIndex = i);
+    handlesGroup.appendChild(c);
+  });
+}
+drawHandles();
+
+window.addEventListener("mousemove", e => {
+  if (activeIndex === null) return;
+  const rect = svg.getBoundingClientRect();
+  points[activeIndex].x = ((e.clientX - rect.left) / rect.width) * 200;
+  points[activeIndex].y = ((e.clientY - rect.top) / rect.height) * 200;
+  updatePolygon();
+  drawHandles();
+});
+
+window.addEventListener("mouseup", () => activeIndex = null);
+
+// ===== overlay toggle =====
+document.getElementById("overlayToggle").addEventListener("change", e => {
+  overlayPoly.style.display = e.target.checked ? "block" : "none";
+});
+
+// ===== color sync =====
+const picker = document.getElementById("colorPicker");
+const hex = document.getElementById("hexInput");
+
+picker.addEventListener("input", e => {
+  mainPoly.style.fill = e.target.value;
+  hex.value = e.target.value;
+});
+
+hex.addEventListener("input", e => {
+  mainPoly.style.fill = e.target.value;
+  picker.value = e.target.value;
+});
+
+// ===== copy =====
+document.getElementById("copyPoints").onclick = () => {
+  navigator.clipboard.writeText(
+    points.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(" ")
+  );
+};
 const dict = {
   en: { title: "Polygon Generator", overlay: "Overlay", copy: "Copy Points" },
   ja: { title: "ポリゴン生成ツール", overlay: "オーバーレイ", copy: "座標をコピー" }
@@ -10,3 +166,6 @@ document.getElementById("langToggle").onclick = () => {
     el.textContent = dict[lang][el.dataset.i18n];
   });
 };
+
+</script>
+</html>
