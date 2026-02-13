@@ -7,7 +7,7 @@
     <style>
         :root {
             /* ダークモード（デフォルト）の配色 */
-            --bg-color: #ffffff;
+            --bg-color: #0b1020;
             --panel-bg: rgba(15, 20, 35, 0.95);
             --accent-color: #ff66cc;
             --text-color: #ffffff;
@@ -317,10 +317,10 @@
         
         if (brightness < 125) { // 暗い色を選択 -> 背景を白、文字を黒に
             root.style.setProperty('--bg-color', '#ffffff');
-            root.style.setProperty('--text-color', '#0b1020');
+            root.style.setProperty('--text-color', '#1a1a1a');
             root.style.setProperty('--panel-bg', 'rgba(245, 245, 245, 0.95)');
             root.style.setProperty('--input-bg', '#ffffff');
-            root.style.setProperty('--input-text', '#0b1020');
+            root.style.setProperty('--input-text', '#1a1a1a');
             root.style.setProperty('--border-color', 'rgba(0, 0, 0, 0.15)');
         } else { // 明るい色を選択 -> ダークモード維持
             root.style.setProperty('--bg-color', '#0b1020');
