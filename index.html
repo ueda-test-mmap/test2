@@ -7,6 +7,7 @@
     <style>
         :root {
             --bg-color: #0b1020;
+            --canvas-bg: #0b1020;
             --panel-bg: rgba(18, 22, 38, 0.98);
             --accent-color: #ff66cc;
             --text-color: #e0e0e0;
@@ -29,8 +30,8 @@
 
         @media (max-width: 850px) {
             .main-layout { flex-direction: column; overflow-y: auto; }
-            .sidebar { width: 90% !important; border-left: none !important; paddng: 5% !important; }
-            .preview-area { min-height: 270px; flex: none; }
+            .sidebar { width: 100% !important; border-left: none !important; padding: 20px !important; box-sizing: border-box; }
+            .preview-area { min-height: 320px; flex: none; padding: 20px; }
         }
 
         /* キャンバス視覚化 */
@@ -41,17 +42,18 @@
 
         .canvas-container {
             width: 100%; max-width: 500px; aspect-ratio: 1/1;
-            background: #0b1020; border: 2px solid #334155;
+            background: var(--canvas-bg); border: 2px solid #334155;
             box-shadow: 0 0 30px rgba(0,0,0,0.5); position: relative;
             background-image: 
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
             background-size: 10% 10%;
+            transition: background-color 0.4s ease;
         }
 
         svg { width: 100%; height: 100%; overflow: visible; }
         
-        .shape-polygon { cursor: move; transition: filter 0.2s; }
+        .shape-polygon { cursor: move; transition: filter 0.2s; stroke: rgba(255,255,255,0.1); stroke-width: 0.2; }
         .handle { stroke: #fff; stroke-width: 1.5; cursor: grab; transition: r 0.1s; }
         .handle:hover { r: 5; }
 
@@ -66,6 +68,7 @@
         .shape-tab {
             flex: 1; padding: 12px 5px; border-radius: 8px; border: 1px solid var(--border-color);
             background: rgba(255,255,255,0.03); color: #888; cursor: pointer; text-align: center; font-size: 0.7rem;
+            transition: 0.2s;
         }
         .shape-tab.active { color: #fff; background: rgba(255,255,255,0.08); border-bottom: 3px solid var(--accent-color); }
 
@@ -116,12 +119,12 @@
 
 <header>
     <div style="font-weight: 800; letter-spacing: 1px;">POLY STUDIO <span style="color:var(--accent-color)">PRO</span></div>
-    <button id="langToggle" style="background:none; border:1px solid #334155; padding:4px 10px;">JP / EN</button>
+    <button id="langToggle" style="background:none; border:1px solid #334155; padding:4px 10px; color:#fff; cursor:pointer;">JP / EN</button>
 </header>
 
 <div class="main-layout">
     <div class="preview-area">
-        <div class="canvas-container">
+        <div class="canvas-container" id="canvasBox">
             <svg id="canvas" viewBox="0 0 100 100">
                 <polygon id="poly0" class="shape-polygon"></polygon>
                 <polygon id="poly1" class="shape-polygon"></polygon>
@@ -146,7 +149,7 @@
                 <div class="switch"></div>
             </label>
             <div class="input-row" style="margin-top:15px;">
-                <label style="font-size:0.7rem; min-width:60px;">Vertices: <span id="vertNum">3</span></label>
+                <label style="font-size:0.7rem; min-width:60px;"><span id="ui-label-verts">Vertices</span>: <span id="vertNum">3</span></label>
                 <input type="range" id="rangeVert" min="3" max="12" step="1">
             </div>
             <div class="input-row">
@@ -158,26 +161,26 @@
         <div class="control-block">
             <h3 id="ui-h-glow">Glow Effect</h3>
             <label class="switch-row">
-                <span id="ui-label-glow">Enable Glow</span>
+                <span id="ui-label-glow-en">Enable Glow</span>
                 <input type="checkbox" id="checkGlow">
                 <div class="switch"></div>
             </label>
             <div class="input-row">
                 <input type="color" id="pickGlow">
-                <span style="font-size:0.7rem; opacity:0.6">Glow Color</span>
+                <span style="font-size:0.7rem; opacity:0.6" id="ui-label-gcol">Glow Color</span>
             </div>
         </div>
 
         <div class="control-block">
             <h3 id="ui-h-points">Polygon Points (Current)</h3>
             <textarea id="areaPoints" readonly></textarea>
-            <button onclick="copy('areaPoints')" style="width:100%; margin-top:8px; background:var(--accent-color)">Copy Points Only</button>
+            <button onclick="copy('areaPoints')" style="width:100%; margin-top:8px; background:var(--accent-color)" id="ui-btn-pts">Copy Points Only</button>
         </div>
 
         <div class="control-block" style="border-color: #e67e2244;">
-            <h3 style="color:#e67e22">Full HTML Export</h3>
+            <h3 style="color:#e67e22" id="ui-h-export">Full HTML Export</h3>
             <textarea id="areaHTML" readonly style="color:#ffcc66"></textarea>
-            <button onclick="copy('areaHTML')" style="width:100%; margin-top:8px; background:#e67e22">Copy Full HTML</button>
+            <button onclick="copy('areaHTML')" style="width:100%; margin-top:8px; background:#e67e22" id="ui-btn-html">Copy Full HTML</button>
         </div>
     </div>
 </div>
@@ -185,6 +188,21 @@
 <script>
     const colors = ['#ff66cc', '#00ffff', '#33ff33'];
     let currentIdx = 0;
+    let lang = 'ja';
+    
+    const i18n = {
+        ja: {
+            base: "基本設定", vis: "図形を表示する", verts: "頂点数", glow: "光彩エフェクト",
+            glowEn: "光彩を有効にする", gcol: "光彩の色", pts: "ポリゴン座標 (選択中)",
+            btnPts: "座標のみコピー", export: "HTML一括書き出し", btnHtml: "HTMLをコピー"
+        },
+        en: {
+            base: "Base Settings", vis: "Show this shape", verts: "Vertices", glow: "Glow Effect",
+            glowEn: "Enable Glow", gcol: "Glow Color", pts: "Polygon Points (Current)",
+            btnPts: "Copy Points Only", export: "Full HTML Export", btnHtml: "Copy Full HTML"
+        }
+    };
+
     let shapes = [
         { vis: true, count: 3, col: '#ff66cc', glw: true, gcol: '#ff66cc', pts: [{x:50,y:20},{x:20,y:80},{x:80,y:80}] },
         { vis: false, count: 4, col: '#00ffff', glw: true, gcol: '#00ffff', pts: [{x:30,y:30},{x:70,y:30},{x:70,y:70},{x:30,y:70}] },
@@ -197,8 +215,10 @@
     function init() {
         render();
         updateUI();
+        updateLang();
         
-        // 数値の即時反映
+        document.getElementById('langToggle').onclick = () => { lang = lang === 'ja' ? 'en' : 'ja'; updateLang(); };
+
         document.getElementById('rangeVert').addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
             document.getElementById('vertNum').innerText = val;
@@ -207,7 +227,11 @@
         });
 
         document.getElementById('checkVis').onchange = (e) => { shapes[currentIdx].vis = e.target.checked; render(); };
-        document.getElementById('pickColor').oninput = (e) => { shapes[currentIdx].col = e.target.value; document.getElementById('textHex').value=e.target.value; render(); };
+        document.getElementById('pickColor').oninput = (e) => { 
+            shapes[currentIdx].col = e.target.value; 
+            document.getElementById('textHex').value = e.target.value; 
+            render(); 
+        };
         document.getElementById('textHex').onchange = (e) => { shapes[currentIdx].col = e.target.value; render(); };
         document.getElementById('checkGlow').onchange = (e) => { shapes[currentIdx].glw = e.target.checked; render(); };
         document.getElementById('pickGlow').oninput = (e) => { shapes[currentIdx].gcol = e.target.value; render(); };
@@ -220,22 +244,30 @@
 
     let dragData = null;
 
+    // 輝度計算（背景調整用）
+    function getLuminance(hex) {
+        const rgb = hex.replace('#','').match(/.{2}/g).map(x => parseInt(x, 16));
+        return (rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114);
+    }
+
     function render() {
         handleGroup.innerHTML = '';
+        let minLuminance = 255;
+
         shapes.forEach((s, sIdx) => {
             const poly = document.getElementById(`poly${sIdx}`);
             if (!s.vis) { poly.setAttribute('points',''); return; }
+
+            if (getLuminance(s.col) < minLuminance) minLuminance = getLuminance(s.col);
 
             const pStr = s.pts.map(p => `${p.x},${p.y}`).join(' ');
             poly.setAttribute('points', pStr);
             poly.setAttribute('fill', s.col);
             poly.style.filter = s.glw ? `drop-shadow(0 0 10px ${s.gcol})` : 'none';
 
-            // 図形自体のドラッグイベント
-            poly.onmousedown = (e) => { dragData = { type:'shape', sIdx, ox:e.clientX, oy:e.clientY }; e.stopPropagation(); };
-            poly.ontouchstart = (e) => { dragData = { type:'shape', sIdx, ox:e.touches[0].clientX, oy:e.touches[0].clientY }; e.stopPropagation(); };
+            poly.onmousedown = (e) => { dragData = { type:'shape', sIdx, ox:e.clientX, oy:e.clientY }; e.stopPropagation(); if(sIdx !== currentIdx) selectShape(sIdx); };
+            poly.ontouchstart = (e) => { dragData = { type:'shape', sIdx, ox:e.touches[0].clientX, oy:e.touches[0].clientY }; e.stopPropagation(); if(sIdx !== currentIdx) selectShape(sIdx); };
 
-            // ハンドル
             s.pts.forEach((p, pIdx) => {
                 const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
                 c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); c.setAttribute('r', currentIdx === sIdx ? 4 : 2.5);
@@ -244,30 +276,37 @@
                 const startPointDrag = (e) => { 
                     dragData = { type:'point', sIdx, pIdx }; 
                     e.stopPropagation(); 
-                    if(sIdx !== currentIdx) selectShape(sIdx); // 触った図形をアクティブに
+                    if(sIdx !== currentIdx) selectShape(sIdx);
                 };
                 c.onmousedown = startPointDrag;
                 c.ontouchstart = startPointDrag;
                 handleGroup.appendChild(c);
             });
         });
+
+        // 背景色の動的調整（黒に近づいたら背景を少し明るく）
+        const canvasBox = document.getElementById('canvasBox');
+        canvasBox.style.backgroundColor = minLuminance < 40 ? '#1a2235' : '#0b1020';
+        
         updateExports();
     }
 
     function onMove(e) {
         if (!dragData) return;
         const rect = svg.getBoundingClientRect();
-        const x = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
-        const y = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
-
+        
         if (dragData.type === 'point') {
+            const x = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+            const y = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
             shapes[dragData.sIdx].pts[dragData.pIdx] = {x, y};
         } else if (dragData.type === 'shape') {
             const dx = ((e.clientX - dragData.ox) / rect.width) * 100;
             const dy = ((e.clientY - dragData.oy) / rect.height) * 100;
+            
+            // 移動後の座標を計算し、すべて整数化
             shapes[dragData.sIdx].pts.forEach(p => {
-                p.x = Math.max(0, Math.min(100, p.x + dx));
-                p.y = Math.max(0, Math.min(100, p.y + dy));
+                p.x = Math.max(0, Math.min(100, Math.round(p.x + dx)));
+                p.y = Math.max(0, Math.min(100, Math.round(p.y + dy)));
             });
             dragData.ox = e.clientX; dragData.oy = e.clientY;
         }
@@ -291,6 +330,23 @@
         document.getElementById('textHex').value = s.col;
         document.getElementById('checkGlow').checked = s.glw;
         document.getElementById('pickGlow').value = s.gcol;
+    }
+
+    function updateLang() {
+        const t = i18n[lang];
+        document.getElementById('ui-h-base').innerText = t.base;
+        document.getElementById('ui-label-vis').innerText = t.vis;
+        document.getElementById('ui-label-verts').innerText = t.verts;
+        document.getElementById('ui-h-glow').innerText = t.glow;
+        document.getElementById('ui-label-glow-en').innerText = t.glowEn;
+        document.getElementById('ui-label-gcol').innerText = t.gcol;
+        document.getElementById('ui-h-points').innerText = t.pts;
+        document.getElementById('ui-btn-pts').innerText = t.btnPts;
+        document.getElementById('ui-h-export').innerText = t.export;
+        document.getElementById('ui-btn-html').innerText = t.btnHtml;
+        document.getElementById('tab0').innerText = lang === 'ja' ? '図形 1' : 'SHAPE 1';
+        document.getElementById('tab1').innerText = lang === 'ja' ? '図形 2' : 'SHAPE 2';
+        document.getElementById('tab2').innerText = lang === 'ja' ? '図形 3' : 'SHAPE 3';
     }
 
     function adjustPoints(idx, count) {
@@ -326,7 +382,8 @@
         el.select();
         navigator.clipboard.writeText(el.value);
         const btn = event.target;
-        const old = btn.innerText; btn.innerText = 'COPIED!';
+        const old = btn.innerText; 
+        btn.innerText = lang === 'ja' ? 'コピー完了！' : 'COPIED!';
         setTimeout(() => btn.innerText = old, 1000);
     };
 
