@@ -28,12 +28,13 @@
 
         .main-layout { display: flex; flex: 1; overflow: hidden; }
 
+        /* モバイル対応設定 */
         @media (max-width: 850px) {
             .main-layout { flex-direction: column; overflow-y: auto; }
             .sidebar { width: 100% !important; border-left: none !important; padding: 20px !important; box-sizing: border-box; }
             .preview-area { min-height: 270px; flex: none; padding: 20px; }
-            .textarea { width: calc(100% - 10px); height: 13px; padding-right: 0px;}
-            .textarea:nth-child(2){ height: 100px; }
+            textarea { width: 100%; box-sizing: border-box; }
+        } /* ← この閉じカッコが抜けていたのが原因です！ */
 
         /* キャンバス視覚化 */
         .preview-area {
@@ -137,20 +138,20 @@
 
     <div class="sidebar">
         <div class="shape-selector">
-            <div class="shape-tab active" onclick="selectShape(0)" id="tab0">SHAPE 1</div>
-            <div class="shape-tab" onclick="selectShape(1)" id="tab1">SHAPE 2</div>
-            <div class="shape-tab" onclick="selectShape(2)" id="tab2">SHAPE 3</div>
+            <div class="shape-tab active" onclick="selectShape(0)" id="tab0">図形 1</div>
+            <div class="shape-tab" onclick="selectShape(1)" id="tab1">図形 2</div>
+            <div class="shape-tab" onclick="selectShape(2)" id="tab2">図形 3</div>
         </div>
 
         <div class="control-block">
-            <h3 id="ui-h-base">Base Settings</h3>
+            <h3 id="ui-h-base">基本設定</h3>
             <label class="switch-row">
-                <span id="ui-label-vis">Show this shape</span>
+                <span id="ui-label-vis">図形を表示する</span>
                 <input type="checkbox" id="checkVis">
                 <div class="switch"></div>
             </label>
             <div class="input-row" style="margin-top:15px;">
-                <label style="font-size:0.7rem; min-width:60px;"><span id="ui-label-verts">Vertices</span>: <span id="vertNum">3</span></label>
+                <label style="font-size:0.7rem; min-width:60px;"><span id="ui-label-verts">頂点数</span>: <span id="vertNum">3</span></label>
                 <input type="range" id="rangeVert" min="3" max="12" step="1">
             </div>
             <div class="input-row">
@@ -160,28 +161,28 @@
         </div>
 
         <div class="control-block">
-            <h3 id="ui-h-glow">Glow Effect</h3>
+            <h3 id="ui-h-glow">光彩エフェクト</h3>
             <label class="switch-row">
-                <span id="ui-label-glow-en">Enable Glow</span>
+                <span id="ui-label-glow-en">光彩を有効にする</span>
                 <input type="checkbox" id="checkGlow">
                 <div class="switch"></div>
             </label>
             <div class="input-row">
                 <input type="color" id="pickGlow">
-                <span style="font-size:0.7rem; opacity:0.6" id="ui-label-gcol">Glow Color</span>
+                <span style="font-size:0.7rem; opacity:0.6" id="ui-label-gcol">光彩の色</span>
             </div>
         </div>
 
         <div class="control-block">
-            <h3 id="ui-h-points">Polygon Points (Current)</h3>
+            <h3 id="ui-h-points">ポリゴン座標 (選択中)</h3>
             <textarea id="areaPoints" readonly></textarea>
-            <button onclick="copy('areaPoints')" style="width:100%; margin-top:8px; background:var(--accent-color)" id="ui-btn-pts">Copy Points Only</button>
+            <button onclick="copy('areaPoints')" style="width:100%; margin-top:8px; background:var(--accent-color)" id="ui-btn-pts">座標のみコピー</button>
         </div>
 
         <div class="control-block" style="border-color: #e67e2244;">
-            <h3 style="color:#e67e22" id="ui-h-export">Full HTML Export</h3>
+            <h3 style="color:#e67e22" id="ui-h-export">HTML一括書き出し</h3>
             <textarea id="areaHTML" readonly style="color:#ffcc66"></textarea>
-            <button onclick="copy('areaHTML')" style="width:100%; margin-top:8px; background:#e67e22" id="ui-btn-html">Copy Full HTML</button>
+            <button onclick="copy('areaHTML')" style="width:100%; margin-top:8px; background:#e67e22" id="ui-btn-html">HTMLをコピー</button>
         </div>
     </div>
 </div>
@@ -245,7 +246,6 @@
 
     let dragData = null;
 
-    // 輝度計算（背景調整用）
     function getLuminance(hex) {
         const rgb = hex.replace('#','').match(/.{2}/g).map(x => parseInt(x, 16));
         return (rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114);
@@ -258,7 +258,6 @@
         shapes.forEach((s, sIdx) => {
             const poly = document.getElementById(`poly${sIdx}`);
             if (!s.vis) { poly.setAttribute('points',''); return; }
-
             if (getLuminance(s.col) < minLuminance) minLuminance = getLuminance(s.col);
 
             const pStr = s.pts.map(p => `${p.x},${p.y}`).join(' ');
@@ -285,17 +284,14 @@
             });
         });
 
-        // 背景色の動的調整（黒に近づいたら背景を少し明るく）
         const canvasBox = document.getElementById('canvasBox');
         canvasBox.style.backgroundColor = minLuminance < 40 ? '#1a2235' : '#0b1020';
-        
         updateExports();
     }
 
     function onMove(e) {
         if (!dragData) return;
         const rect = svg.getBoundingClientRect();
-        
         if (dragData.type === 'point') {
             const x = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
             const y = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
@@ -303,8 +299,6 @@
         } else if (dragData.type === 'shape') {
             const dx = ((e.clientX - dragData.ox) / rect.width) * 100;
             const dy = ((e.clientY - dragData.oy) / rect.height) * 100;
-            
-            // 移動後の座標を計算し、すべて整数化
             shapes[dragData.sIdx].pts.forEach(p => {
                 p.x = Math.max(0, Math.min(100, Math.round(p.x + dx)));
                 p.y = Math.max(0, Math.min(100, Math.round(p.y + dy)));
@@ -366,7 +360,6 @@
     function updateExports() {
         const curPts = shapes[currentIdx].pts.map(p => `${p.x},${p.y}`).join(' ');
         document.getElementById('areaPoints').value = curPts;
-
         let html = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:300px; overflow:visible;">\n`;
         shapes.forEach(s => {
             if(!s.vis) return;
