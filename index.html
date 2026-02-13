@@ -32,7 +32,8 @@
             .main-layout { flex-direction: column; overflow-y: auto; }
             .sidebar { width: 100% !important; border-left: none !important; padding: 20px !important; box-sizing: border-box; }
             .preview-area { min-height: 270px; flex: none; padding: 20px; }
-        }
+            .textarea { width: calc(100% - 10px); height: 13px; padding-right: 0px;}
+            .textarea::nth-child(2){ height: 100px; }
 
         /* キャンバス視覚化 */
         .preview-area {
