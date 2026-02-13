@@ -3,321 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Multi-Polygon Glow Studio</title>
+    <title>Pro Polygon Studio</title>
     <style>
         :root {
             --bg-color: #0b1020;
-            --panel-bg: rgba(15, 20, 35, 0.95);
-            --accent-color: #ff66cc; /* Default to Shape 1 color */
-            --text-color: #ffffff;
+            --panel-bg: rgba(18, 22, 38, 0.98);
+            --accent-color: #ff66cc;
+            --text-color: #e0e0e0;
             --input-bg: #1a1f2e;
-            --input-text: #ffffff;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --transition-speed: 0.3s;
+            --border-color: rgba(255, 255, 255, 0.12);
         }
 
         body {
             margin: 0; font-family: 'Inter', system-ui, sans-serif;
             background-color: var(--bg-color); color: var(--text-color);
-            transition: background-color var(--transition-speed);
             display: flex; flex-direction: column; height: 100vh; overflow: hidden;
         }
 
         header {
-            padding: 0.8rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.2); backdrop-filter: blur(15px); border-bottom: 1px solid var(--border-color); z-index: 100;
+            padding: 0.6rem 1.2rem; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border-color);
         }
 
         .main-layout { display: flex; flex: 1; overflow: hidden; }
 
-        @media (max-width: 768px) {
+        @media (max-width: 850px) {
             .main-layout { flex-direction: column; overflow-y: auto; }
-            .sidebar { width: 90% !important; border-left: none !important; border-top: 1px solid var(--border-color); overflow-y: visible !important; padding: 5% !important;}
-            .preview-area { min-height: 270px; flex: none; }
+            .sidebar { width: 100% !important; border-left: none !important; }
+            .preview-area { min-height: 400px; flex: none; }
         }
 
+        /* キャンバス視覚化 */
         .preview-area {
             flex: 1; display: flex; justify-content: center; align-items: center;
-            background-image: radial-gradient(circle at center, rgba(128,128,128,0.1) 1px, transparent 1px);
-            background-size: 20px 20px; padding: 20px; touch-action: none;
+            background: #05070a; position: relative; padding: 40px;
         }
 
-        svg { width: 100%; max-width: 450px; overflow: visible; }
-        .shape-polygon { stroke: rgba(128,128,128,0.2); stroke-width: 0.5; transition: filter 0.3s ease; }
-        
-        .handle { stroke: #fff; stroke-width: 2; cursor: grab; transition: opacity 0.2s; }
-        .handle.inactive { opacity: 0.2; pointer-events: none; }
+        .canvas-container {
+            width: 100%; max-width: 500px; aspect-ratio: 1/1;
+            background: #0b1020; border: 2px solid #334155;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5); position: relative;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 10% 10%;
+        }
 
+        svg { width: 100%; height: 100%; overflow: visible; }
+        
+        .shape-polygon { cursor: move; transition: filter 0.2s; }
+        .handle { stroke: #fff; stroke-width: 1.5; cursor: grab; transition: r 0.1s; }
+        .handle:hover { r: 5; }
+
+        /* サイドバー */
         .sidebar {
             width: 420px; background: var(--panel-bg); padding: 20px;
             border-left: 1px solid var(--border-color); overflow-y: auto;
-            display: flex; flex-direction: column; gap: 12px;
+            display: flex; flex-direction: column; gap: 15px;
         }
 
-        /* Shape Tabs */
-        .shape-selector { display: flex; gap: 8px; margin-bottom: 10px; }
+        .shape-selector { display: flex; gap: 8px; margin-bottom: 5px; }
         .shape-tab {
-            flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);
-            background: rgba(255,255,255,0.05); color: #fff; cursor: pointer; font-size: 0.75rem;
-            display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.2s;
+            flex: 1; padding: 12px 5px; border-radius: 8px; border: 1px solid var(--border-color);
+            background: rgba(255,255,255,0.03); color: #888; cursor: pointer; text-align: center; font-size: 0.7rem;
         }
-        .shape-tab.active { background: var(--accent-color); border-color: transparent; font-weight: bold; }
-        .shape-tab span { font-size: 0.6rem; opacity: 0.8; }
+        .shape-tab.active { color: #fff; background: rgba(255,255,255,0.08); border-bottom: 3px solid var(--accent-color); }
 
         .control-block {
-            background: rgba(128,128,128,0.05); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);
+            background: rgba(255,255,255,0.02); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color);
         }
 
-        h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px 0; color: var(--accent-color); }
+        h3 { font-size: 0.75rem; text-transform: uppercase; margin: 0 0 12px 0; color: var(--accent-color); opacity: 0.9; }
 
-        .input-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-        .input-row label { font-size: 0.7rem; flex: 0.4; opacity: 0.8; }
+        /* モダンなスイッチ */
+        .switch-row { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 5px 0; }
+        .switch {
+            position: relative; width: 44px; height: 22px;
+            background: #334155; border-radius: 20px; transition: 0.3s;
+        }
+        .switch::after {
+            content: ''; position: absolute; width: 18px; height: 18px;
+            background: white; border-radius: 50%; top: 2px; left: 2px; transition: 0.3s;
+        }
+        input:checked + .switch { background: var(--accent-color); }
+        input:checked + .switch::after { left: 24px; }
+        input[type="checkbox"] { display: none; }
+
+        .input-row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
         input[type="text"], input[type="range"] {
-            flex: 1; background: var(--input-bg); border: 1px solid var(--border-color);
-            color: var(--input-text); padding: 8px; border-radius: 6px; font-size: 0.8rem;
+            flex: 1; background: var(--input-bg); border: 1px solid #334155;
+            color: #fff; padding: 10px; border-radius: 6px; font-size: 0.85rem;
         }
 
         input[type="color"] {
-            -webkit-appearance: none; width: 34px; height: 34px; border: 1px solid var(--border-color);
-            border-radius: 6px; cursor: pointer; background: none; padding: 0;
+            -webkit-appearance: none; width: 44px; height: 44px; border: none; border-radius: 6px; cursor: pointer; background: none;
         }
 
         button {
-            background: #2d344d; color: #fff; border: none; padding: 8px 12px;
-            border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: 600; transition: 0.2s;
+            background: #334155; color: #fff; border: none; padding: 10px 15px;
+            border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600;
         }
-        button:hover { filter: brightness(1.2); }
-        .copy-btn { background: #4a5578; }
+        button:hover { background: #475569; }
 
         textarea {
-            width: 100%; height: 100px; background: #000; color: #ffcc66;
-            border: 1px solid var(--border-color); padding: 10px; border-radius: 6px;
-            font-family: monospace; font-size: 0.7rem; resize: none; box-sizing: border-box;
+            width: 100%; height: 80px; background: #000; color: #00ffaa;
+            border: 1px solid #334155; padding: 10px; border-radius: 6px;
+            font-family: monospace; font-size: 0.75rem; resize: none; margin-top: 5px;
         }
     </style>
 </head>
 <body>
 
 <header>
-    <h2 id="ui-title" style="font-size: 1rem; margin:0;">Multi-Polygon Studio</h2>
-    <button id="langToggle">日本語</button>
+    <div style="font-weight: 800; letter-spacing: 1px;">POLY STUDIO <span style="color:var(--accent-color)">PRO</span></div>
+    <button id="langToggle" style="background:none; border:1px solid #334155; padding:4px 10px;">JP / EN</button>
 </header>
 
 <div class="main-layout">
     <div class="preview-area">
-        <svg id="canvas" viewBox="0 0 100 100">
-            <polygon id="poly0" class="shape-polygon"></polygon>
-            <polygon id="poly1" class="shape-polygon"></polygon>
-            <polygon id="poly2" class="shape-polygon"></polygon>
-            <g id="handleContainer"></g>
-        </svg>
+        <div class="canvas-container">
+            <svg id="canvas" viewBox="0 0 100 100">
+                <polygon id="poly0" class="shape-polygon"></polygon>
+                <polygon id="poly1" class="shape-polygon"></polygon>
+                <polygon id="poly2" class="shape-polygon"></polygon>
+                <g id="handleGroup"></g>
+            </svg>
+        </div>
     </div>
 
     <div class="sidebar">
         <div class="shape-selector">
-            <div class="shape-tab active" onclick="selectShape(0)" id="tab0" style="border-bottom: 4px solid #ff66cc;">
-                Shape 1 <span id="ui-info0">Visible</span>
-            </div>
-            <div class="shape-tab" onclick="selectShape(1)" id="tab1" style="border-bottom: 4px solid #00ffff;">
-                Shape 2 <span id="ui-info1">Hidden</span>
-            </div>
-            <div class="shape-tab" onclick="selectShape(2)" id="tab2" style="border-bottom: 4px solid #33ff33;">
-                Shape 3 <span id="ui-info2">Hidden</span>
-            </div>
+            <div class="shape-tab active" onclick="selectShape(0)" id="tab0">SHAPE 1</div>
+            <div class="shape-tab" onclick="selectShape(1)" id="tab1">SHAPE 2</div>
+            <div class="shape-tab" onclick="selectShape(2)" id="tab2">SHAPE 3</div>
         </div>
 
         <div class="control-block">
-            <h3 id="ui-h-settings">Shape Settings</h3>
-            <div class="input-row">
-                <label id="ui-label-show">Show Shape</label>
-                <input type="checkbox" id="shapeVisible" checked>
+            <h3 id="ui-h-base">Base Settings</h3>
+            <label class="switch-row">
+                <span id="ui-label-vis">Show this shape</span>
+                <input type="checkbox" id="checkVis">
+                <div class="switch"></div>
+            </label>
+            <div class="input-row" style="margin-top:15px;">
+                <label style="font-size:0.7rem; min-width:60px;">Vertices: <span id="vertNum">3</span></label>
+                <input type="range" id="rangeVert" min="3" max="12" step="1">
             </div>
             <div class="input-row">
-                <label id="ui-label-verts">Vertices</label>
-                <input type="range" id="vertexCount" min="3" max="12" value="3">
-                <span id="vertVal" style="font-size:0.8rem; min-width:20px;">3</span>
-            </div>
-            <div class="input-row">
-                <label id="ui-label-color">Base Color</label>
-                <input type="color" id="basePicker">
-                <input type="text" id="baseHex">
-                <button class="copy-btn" onclick="copyValue('baseHex')">Copy</button>
+                <input type="color" id="pickColor">
+                <input type="text" id="textHex" placeholder="#FFFFFF">
             </div>
         </div>
 
         <div class="control-block">
             <h3 id="ui-h-glow">Glow Effect</h3>
+            <label class="switch-row">
+                <span id="ui-label-glow">Enable Glow</span>
+                <input type="checkbox" id="checkGlow">
+                <div class="switch"></div>
+            </label>
             <div class="input-row">
-                <label id="ui-label-glow">Enable Glow</label>
-                <input type="checkbox" id="glowToggle">
-            </div>
-            <div class="input-row">
-                <label id="ui-label-gcolor">Glow Color</label>
-                <input type="color" id="glowPicker">
-                <button class="copy-btn" onclick="copyValue('glowPicker')">Copy</button>
+                <input type="color" id="pickGlow">
+                <span style="font-size:0.7rem; opacity:0.6">Glow Color</span>
             </div>
         </div>
 
-        <div class="control-block" style="background: rgba(255,200,100,0.08);">
-            <h3 id="ui-h-export" style="color:#e67e22">Combined HTML Export</h3>
-            <textarea id="htmlExportArea" readonly></textarea>
-            <button onclick="copyValue('htmlExportArea')" style="width:100%; margin-top:10px; background:#e67e22" id="ui-btn-export">Copy All Shapes</button>
+        <div class="control-block">
+            <h3 id="ui-h-points">Polygon Points (Current)</h3>
+            <textarea id="areaPoints" readonly></textarea>
+            <button onclick="copy('areaPoints')" style="width:100%; margin-top:8px; background:var(--accent-color)">Copy Points Only</button>
+        </div>
+
+        <div class="control-block" style="border-color: #e67e2244;">
+            <h3 style="color:#e67e22">Full HTML Export</h3>
+            <textarea id="areaHTML" readonly style="color:#ffcc66"></textarea>
+            <button onclick="copy('areaHTML')" style="width:100%; margin-top:8px; background:#e67e22">Copy Full HTML</button>
         </div>
     </div>
 </div>
 
 <script>
-    const handleColors = ['#ff66cc', '#00ffff', '#33ff33'];
-    let activeIdx = 0;
-    
-    // データモデル
+    const colors = ['#ff66cc', '#00ffff', '#33ff33'];
+    let currentIdx = 0;
     let shapes = [
-        { visible: true, vertices: 3, color: '#ff66cc', glow: true, glowColor: '#ff66cc', points: [{x:50,y:15}, {x:15,y:85}, {x:85,y:85}] },
-        { visible: false, vertices: 4, color: '#00ffff', glow: true, glowColor: '#00ffff', points: [{x:30,y:30}, {x:70,y:30}, {x:70,y:70}, {x:30,y:70}] },
-        { visible: false, vertices: 5, color: '#33ff33', glow: true, glowColor: '#33ff33', points: [{x:50,y:10}, {x:90,y:40}, {x:75,y:90}, {x:25,y:90}, {x:10,y:40}] }
+        { vis: true, count: 3, col: '#ff66cc', glw: true, gcol: '#ff66cc', pts: [{x:50,y:20},{x:20,y:80},{x:80,y:80}] },
+        { vis: false, count: 4, col: '#00ffff', glw: true, gcol: '#00ffff', pts: [{x:30,y:30},{x:70,y:30},{x:70,y:70},{x:30,y:70}] },
+        { vis: false, count: 5, col: '#33ff33', glw: true, gcol: '#33ff33', pts: [{x:50,y:10},{x:90,y:40},{x:75,y:90},{x:25,y:90},{x:10,y:40}] }
     ];
 
-    const canvas = document.getElementById('canvas');
-    const handleContainer = document.getElementById('handleContainer');
-    const exportArea = document.getElementById('htmlExportArea');
+    const svg = document.getElementById('canvas');
+    const handleGroup = document.getElementById('handleGroup');
 
     function init() {
-        renderAll();
+        render();
         updateUI();
         
-        // イベントリスナー
-        document.getElementById('vertexCount').addEventListener('input', (e) => {
-            adjustVertices(activeIdx, parseInt(e.target.value));
-            renderAll();
-        });
-        document.getElementById('shapeVisible').addEventListener('change', (e) => {
-            shapes[activeIdx].visible = e.target.checked;
-            renderAll();
-            updateUI();
-        });
-        document.getElementById('basePicker').addEventListener('input', (e) => {
-            shapes[activeIdx].color = e.target.value;
-            renderAll();
-        });
-        document.getElementById('baseHex').addEventListener('change', (e) => {
-            shapes[activeIdx].color = e.target.value;
-            renderAll();
-        });
-        document.getElementById('glowToggle').addEventListener('change', (e) => {
-            shapes[activeIdx].glow = e.target.checked;
-            renderAll();
-        });
-        document.getElementById('glowPicker').addEventListener('input', (e) => {
-            shapes[activeIdx].glowColor = e.target.value;
-            renderAll();
+        // 数値の即時反映
+        document.getElementById('rangeVert').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            document.getElementById('vertNum').innerText = val;
+            adjustPoints(currentIdx, val);
+            render();
         });
 
-        // タッチ/マウス移動
-        window.addEventListener('mousemove', handleMove);
-        window.addEventListener('touchmove', (e) => handleMove(e.touches[0]), {passive:false});
-        window.addEventListener('mouseup', () => draggingPoint = null);
-        window.addEventListener('touchend', () => draggingPoint = null);
+        document.getElementById('checkVis').onchange = (e) => { shapes[currentIdx].vis = e.target.checked; render(); };
+        document.getElementById('pickColor').oninput = (e) => { shapes[currentIdx].col = e.target.value; document.getElementById('textHex').value=e.target.value; render(); };
+        document.getElementById('textHex').onchange = (e) => { shapes[currentIdx].col = e.target.value; render(); };
+        document.getElementById('checkGlow').onchange = (e) => { shapes[currentIdx].glw = e.target.checked; render(); };
+        document.getElementById('pickGlow').oninput = (e) => { shapes[currentIdx].gcol = e.target.value; render(); };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', (e) => onMove(e.touches[0]), {passive:false});
+        window.addEventListener('mouseup', () => { dragData = null; });
+        window.addEventListener('touchend', () => { dragData = null; });
     }
 
-    let draggingPoint = null;
+    let dragData = null;
 
-    function renderAll() {
-        handleContainer.innerHTML = '';
+    function render() {
+        handleGroup.innerHTML = '';
         shapes.forEach((s, sIdx) => {
             const poly = document.getElementById(`poly${sIdx}`);
-            if (!s.visible) {
-                poly.setAttribute('points', '');
-                document.getElementById(`ui-info${sIdx}`).innerText = 'Hidden';
-                return;
-            }
-            document.getElementById(`ui-info${sIdx}`).innerText = 'Visible';
-            
-            const ptsStr = s.points.map(p => `${p.x},${p.y}`).join(' ');
-            poly.setAttribute('points', ptsStr);
-            poly.setAttribute('fill', s.color);
-            poly.style.filter = s.glow ? `drop-shadow(0 0 12px ${s.glowColor})` : 'none';
+            if (!s.vis) { poly.setAttribute('points',''); return; }
 
-            // ハンドル描画
-            s.points.forEach((p, pIdx) => {
-                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                circle.setAttribute('cx', p.x);
-                circle.setAttribute('cy', p.y);
-                circle.setAttribute('r', activeIdx === sIdx ? 3.5 : 2);
-                circle.setAttribute('class', 'handle' + (activeIdx !== sIdx ? ' inactive' : ''));
-                circle.setAttribute('fill', handleColors[sIdx]);
+            const pStr = s.pts.map(p => `${p.x},${p.y}`).join(' ');
+            poly.setAttribute('points', pStr);
+            poly.setAttribute('fill', s.col);
+            poly.style.filter = s.glw ? `drop-shadow(0 0 10px ${s.gcol})` : 'none';
+
+            // 図形自体のドラッグイベント
+            poly.onmousedown = (e) => { dragData = { type:'shape', sIdx, ox:e.clientX, oy:e.clientY }; e.stopPropagation(); };
+            poly.ontouchstart = (e) => { dragData = { type:'shape', sIdx, ox:e.touches[0].clientX, oy:e.touches[0].clientY }; e.stopPropagation(); };
+
+            // ハンドル
+            s.pts.forEach((p, pIdx) => {
+                const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+                c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); c.setAttribute('r', currentIdx === sIdx ? 4 : 2.5);
+                c.setAttribute('class','handle'); c.setAttribute('fill', colors[sIdx]);
                 
-                if (activeIdx === sIdx) {
-                    const startDrag = (e) => { draggingPoint = {sIdx, pIdx}; e.preventDefault(); };
-                    circle.addEventListener('mousedown', startDrag);
-                    circle.addEventListener('touchstart', startDrag);
-                }
-                handleContainer.appendChild(circle);
+                const startPointDrag = (e) => { 
+                    dragData = { type:'point', sIdx, pIdx }; 
+                    e.stopPropagation(); 
+                    if(sIdx !== currentIdx) selectShape(sIdx); // 触った図形をアクティブに
+                };
+                c.onmousedown = startPointDrag;
+                c.ontouchstart = startPointDrag;
+                handleGroup.appendChild(c);
             });
         });
-        updateExportCode();
+        updateExports();
     }
 
-    function handleMove(e) {
-        if (!draggingPoint) return;
-        const rect = canvas.getBoundingClientRect();
-        let x = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
-        let y = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
-        
-        shapes[draggingPoint.sIdx].points[draggingPoint.pIdx] = {x, y};
-        renderAll();
+    function onMove(e) {
+        if (!dragData) return;
+        const rect = svg.getBoundingClientRect();
+        const x = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+        const y = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
+
+        if (dragData.type === 'point') {
+            shapes[dragData.sIdx].pts[dragData.pIdx] = {x, y};
+        } else if (dragData.type === 'shape') {
+            const dx = ((e.clientX - dragData.ox) / rect.width) * 100;
+            const dy = ((e.clientY - dragData.oy) / rect.height) * 100;
+            shapes[dragData.sIdx].pts.forEach(p => {
+                p.x = Math.max(0, Math.min(100, p.x + dx));
+                p.y = Math.max(0, Math.min(100, p.y + dy));
+            });
+            dragData.ox = e.clientX; dragData.oy = e.clientY;
+        }
+        render();
     }
 
     function selectShape(idx) {
-        activeIdx = idx;
-        document.querySelectorAll('.shape-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
-        document.documentElement.style.setProperty('--accent-color', handleColors[idx]);
+        currentIdx = idx;
+        document.querySelectorAll('.shape-tab').forEach((t, i) => t.classList.toggle('active', i===idx));
+        document.documentElement.style.setProperty('--accent-color', colors[idx]);
         updateUI();
-        renderAll();
+        render();
     }
 
     function updateUI() {
-        const s = shapes[activeIdx];
-        document.getElementById('shapeVisible').checked = s.visible;
-        document.getElementById('vertexCount').value = s.vertices;
-        document.getElementById('vertVal').innerText = s.vertices;
-        document.getElementById('basePicker').value = s.color;
-        document.getElementById('baseHex').value = s.color;
-        document.getElementById('glowToggle').checked = s.glow;
-        document.getElementById('glowPicker').value = s.glowColor;
+        const s = shapes[currentIdx];
+        document.getElementById('checkVis').checked = s.vis;
+        document.getElementById('rangeVert').value = s.count;
+        document.getElementById('vertNum').innerText = s.count;
+        document.getElementById('pickColor').value = s.col;
+        document.getElementById('textHex').value = s.col;
+        document.getElementById('checkGlow').checked = s.glw;
+        document.getElementById('pickGlow').value = s.gcol;
     }
 
-    function adjustVertices(idx, count) {
+    function adjustPoints(idx, count) {
         const s = shapes[idx];
-        if (count > s.points.length) {
-            // 追加: 最後の点と最初の点の間に作る
-            for (let i = s.points.length; i < count; i++) {
-                const p1 = s.points[i-1];
-                const p2 = s.points[0];
-                s.points.push({ x: Math.round((p1.x + p2.x)/2), y: Math.round((p1.y + p2.y)/2) });
+        if (count > s.pts.length) {
+            while(s.pts.length < count) {
+                const p1 = s.pts[s.pts.length-1], p2 = s.pts[0];
+                s.pts.push({ x: Math.round((p1.x+p2.x)/2), y: Math.round((p1.y+p2.y)/2) });
             }
         } else {
-            // 削除
-            s.points = s.points.slice(0, count);
+            s.pts = s.pts.slice(0, count);
         }
-        s.vertices = count;
+        s.count = count;
     }
 
-    function updateExportCode() {
-        let svgContent = '';
+    function updateExports() {
+        const curPts = shapes[currentIdx].pts.map(p => `${p.x},${p.y}`).join(' ');
+        document.getElementById('areaPoints').value = curPts;
+
+        let html = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:300px; overflow:visible;">\n`;
         shapes.forEach(s => {
-            if (!s.visible) return;
-            const pts = s.points.map(p => `${p.x},${p.y}`).join(' ');
-            const glow = s.glow ? `filter: drop-shadow(0 0 12px ${s.glowColor});` : '';
-            svgContent += `  <polygon points="${pts}" style="fill: ${s.color}; ${glow}"></polygon>\n`;
+            if(!s.vis) return;
+            const ps = s.pts.map(p => `${p.x},${p.y}`).join(' ');
+            const g = s.glw ? `filter:drop-shadow(0 0 10px ${s.gcol});` : '';
+            html += `  <polygon points="${ps}" style="fill:${s.col};${g}"></polygon>\n`;
         });
-
-        exportArea.value = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width: 300px; overflow: visible;">\n${svgContent}</svg>`;
+        html += `</svg>`;
+        document.getElementById('areaHTML').value = html;
     }
 
-    window.copyValue = function(id) {
+    window.copy = function(id) {
         const el = document.getElementById(id);
-        const val = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ? el.value : el.innerText;
-        navigator.clipboard.writeText(val);
+        el.select();
+        navigator.clipboard.writeText(el.value);
         const btn = event.target;
         const old = btn.innerText; btn.innerText = 'COPIED!';
         setTimeout(() => btn.innerText = old, 1000);
